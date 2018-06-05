@@ -1,8 +1,6 @@
 package cn.leo.recyclerviewdecoration;
 
-import android.graphics.Bitmap;
 import android.graphics.Canvas;
-import android.graphics.Paint;
 import android.support.v4.util.ArrayMap;
 import android.support.v7.widget.RecyclerView;
 import android.view.View;
@@ -13,13 +11,10 @@ import android.view.View;
 
 public class FloatDecoration extends RecyclerView.ItemDecoration {
     private int[] mViewTypes;
-    private Bitmap mDrawingBitmap; //当前悬浮的条目bitmap
-    private Bitmap mDrawingCache; //前一个bitmap缓存
-    private int mFloatPosition = -1; //点前悬浮的条目position
-    private int mLastFloatPosition = -1; //前一个悬浮的position
-    private Paint mPaint = new Paint(Paint.ANTI_ALIAS_FLAG);
-    private ArrayMap<Integer, RecyclerView.ViewHolder> mHolderCache = new ArrayMap<>();
+    private View mFloatView;
+    private int mFloatPosition = -1;
     private ArrayMap<Integer, Integer> mHeightCache = new ArrayMap<>();
+    private ArrayMap<Integer, RecyclerView.ViewHolder> mHolderCache = new ArrayMap<>();
 
     public FloatDecoration(int... viewType) {
         mViewTypes = viewType;
@@ -40,37 +35,35 @@ public class FloatDecoration extends RecyclerView.ItemDecoration {
         //第一个条目是悬浮类型
         if (isFloatHolder(firstItemType)) {
             if (firstViewPosition != mFloatPosition) {
-                final int lastPosition = mFloatPosition;
                 mFloatPosition = firstViewPosition;
-                mDrawingBitmap = getBitmap(firstView, parent);
-                mLastFloatPosition = lastPosition;
+                mFloatView = getFloatView(parent, firstView);
             }
-            drawBitmap(c, 0, 0);
+            drawFloatView(mFloatView, c, 0, 0);
             return;
         }
         //第二个条目是悬浮类型
         if (isFloatHolder(secondItemType)) {
             if (mFloatPosition > firstViewPosition) {
-                final int lastPosition = mFloatPosition;
                 mFloatPosition = findPreFloatPosition(parent);
-                mDrawingBitmap = getBitmap(null, parent);
-                mLastFloatPosition = lastPosition;
+                mFloatView = getFloatView(parent, null);
             }
-            int top = secondView.getTop() - mDrawingBitmap.getHeight();
+            int top = secondView.getTop() - mFloatView.getHeight();
             if (top > 0) top = 0;
-            drawBitmap(c, 0, top);
-        } else if (mDrawingBitmap != null) {
-            drawBitmap(c, 0, 0);
+            drawFloatView(mFloatView, c, 0, top);
+        } else if (mFloatView != null) {
+            drawFloatView(mFloatView, c, 0, 0);
         }
     }
 
     /**
-     * 绘制bitmap
+     * 绘制悬浮条目
      */
-    private void drawBitmap(Canvas c, int left, int top) {
-        if (mDrawingBitmap != null && !mDrawingBitmap.isRecycled()) {
-            c.drawBitmap(mDrawingBitmap, left, top, mPaint);
-        }
+    private void drawFloatView(View v, Canvas c, int left, int top) {
+        if (v == null) return;
+        c.save();
+        c.translate(left, top);
+        v.draw(c);
+        c.restore();
     }
 
     /**
@@ -103,32 +96,11 @@ public class FloatDecoration extends RecyclerView.ItemDecoration {
     /**
      * 获取要悬浮的item的bitmap
      */
-    private Bitmap getBitmap(View view, RecyclerView parent) {
-        Bitmap bitmap;
-        if (mFloatPosition == mLastFloatPosition) {
-            bitmap = mDrawingCache;
-            mDrawingCache = mDrawingBitmap;
-            return bitmap;
+    private View getFloatView(RecyclerView parent, View view) {
+        if (view != null) {
+            mHeightCache.put(mFloatPosition, view.getHeight());
         }
-        if (view == null) {
-            RecyclerView.ViewHolder holder = getHolder(parent);
-            int height = mHeightCache.get(mFloatPosition);
-            int width = parent.getWidth();
-            layoutView(holder.itemView, width, height);
-            bitmap = getViewBitmap(holder.itemView);
-        } else {
-            view.setDrawingCacheEnabled(true);
-            Bitmap cacheBitmap = view.getDrawingCache(false);
-            bitmap = Bitmap.createBitmap(cacheBitmap);
-            view.destroyDrawingCache();
-            view.setDrawingCacheEnabled(false);
-            mHeightCache.put(mFloatPosition, bitmap.getHeight());
-        }
-        if (mDrawingCache != null && !mDrawingCache.isRecycled()) {
-            mDrawingCache.recycle();
-        }
-        mDrawingCache = mDrawingBitmap;
-        return bitmap;
+        return getHolder(parent).itemView;
     }
 
 
@@ -140,9 +112,11 @@ public class FloatDecoration extends RecyclerView.ItemDecoration {
         int viewType = adapter.getItemViewType(mFloatPosition);
         RecyclerView.ViewHolder holder = mHolderCache.get(viewType);
         if (holder == null) {
-            holder = adapter.
-                    createViewHolder(recyclerView, adapter.getItemViewType(mFloatPosition));
+            holder = adapter.createViewHolder(recyclerView, adapter.getItemViewType(mFloatPosition));
             mHolderCache.put(viewType, holder);
+            int height = mHeightCache.get(mFloatPosition);
+            int width = recyclerView.getWidth();
+            layoutView(holder.itemView, width, height);
         }
         adapter.bindViewHolder(holder, mFloatPosition);
         return holder;
@@ -152,24 +126,10 @@ public class FloatDecoration extends RecyclerView.ItemDecoration {
      * 测量悬浮布局
      */
     private void layoutView(View v, int width, int height) {
-        v.layout(0, 0, width, height);
         int measuredWidth = View.MeasureSpec.makeMeasureSpec(width, View.MeasureSpec.EXACTLY);
         int measuredHeight = View.MeasureSpec.makeMeasureSpec(height, View.MeasureSpec.EXACTLY);
         v.measure(measuredWidth, measuredHeight);
         v.layout(0, 0, v.getMeasuredWidth(), v.getMeasuredHeight());
     }
 
-    /**
-     * 根据view获取bitmap
-     */
-    private Bitmap getViewBitmap(View v) {
-        int w = v.getWidth();
-        int h = v.getHeight();
-        Bitmap bmp = Bitmap.createBitmap(w, h, Bitmap.Config.ARGB_8888);
-        Canvas c = new Canvas(bmp);
-        //c.drawColor(Color.WHITE);
-        v.layout(0, 0, w, h);
-        v.draw(c);
-        return bmp;
-    }
 }
