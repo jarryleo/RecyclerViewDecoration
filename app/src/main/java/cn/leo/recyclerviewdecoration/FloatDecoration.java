@@ -1,9 +1,14 @@
 package cn.leo.recyclerviewdecoration;
 
 import android.graphics.Canvas;
+import android.graphics.Rect;
 import android.support.v4.util.ArrayMap;
+import android.support.v4.view.GestureDetectorCompat;
 import android.support.v7.widget.RecyclerView;
+import android.view.GestureDetector;
+import android.view.MotionEvent;
 import android.view.View;
+import android.view.ViewGroup;
 
 /**
  * Created by Leo on 2018/6/4.
@@ -15,6 +20,7 @@ public class FloatDecoration extends RecyclerView.ItemDecoration {
     private int mFloatPosition = -1;
     private ArrayMap<Integer, Integer> mHeightCache = new ArrayMap<>();
     private ArrayMap<Integer, RecyclerView.ViewHolder> mHolderCache = new ArrayMap<>();
+    private boolean hasInit = false;
 
     public FloatDecoration(int... viewType) {
         mViewTypes = viewType;
@@ -37,6 +43,7 @@ public class FloatDecoration extends RecyclerView.ItemDecoration {
             if (firstViewPosition != mFloatPosition) {
                 mFloatPosition = firstViewPosition;
                 mFloatView = getFloatView(parent, firstView);
+                touch(parent);
             }
             drawFloatView(mFloatView, c, 0, 0);
             return;
@@ -52,6 +59,66 @@ public class FloatDecoration extends RecyclerView.ItemDecoration {
             drawFloatView(mFloatView, c, 0, top);
         } else if (mFloatView != null) {
             drawFloatView(mFloatView, c, 0, 0);
+        }
+    }
+
+    /**
+     * 处理悬浮条目触摸事件
+     */
+    private void touch(final RecyclerView parent) {
+        if (hasInit) return;
+        hasInit = true;
+        parent.addOnItemTouchListener(new RecyclerView.SimpleOnItemTouchListener() {
+            private GestureDetectorCompat mGestureDetectorCompat =
+                    new GestureDetectorCompat(parent.getContext(), new MyGestureListener(parent));
+
+            @Override
+            public boolean onInterceptTouchEvent(RecyclerView rv, MotionEvent e) {
+                mGestureDetectorCompat.onTouchEvent(e);
+                final int floatHeight = mHeightCache.get(mFloatPosition);
+                return e.getY() < floatHeight;
+            }
+
+            @Override
+            public void onTouchEvent(RecyclerView rv, MotionEvent e) {
+                mGestureDetectorCompat.onTouchEvent(e);
+            }
+        });
+    }
+
+    private class MyGestureListener extends GestureDetector.SimpleOnGestureListener {
+        private RecyclerView mRecyclerView;
+
+        MyGestureListener(RecyclerView recyclerView) {
+            mRecyclerView = recyclerView;
+        }
+
+        @Override
+        public boolean onSingleTapUp(MotionEvent e) {
+            final int floatHeight = mHeightCache.get(mFloatPosition);
+            boolean b = e.getY() < floatHeight;
+            if (b) {
+                childClick(getHolder(mRecyclerView).itemView, e.getX(), e.getY());
+            }
+            return true;
+        }
+
+        /**
+         * 遍历容器和它的子view，传递点击事件
+         */
+        private void childClick(View v, float x, float y) {
+            Rect rect = new Rect(v.getLeft(), v.getTop(), v.getRight(), v.getBottom());
+            if (rect.contains((int) x, (int) y)) {
+                v.performClick();
+            }
+            if (v instanceof ViewGroup) {
+                ViewGroup viewGroup = (ViewGroup) v;
+                int childCount = ((ViewGroup) v).getChildCount();
+                for (int i = 0; i < childCount; i++) {
+                    View view = viewGroup.getChildAt(i);
+                    childClick(view, x, y);
+                }
+            }
         }
     }
 
@@ -131,5 +198,4 @@ public class FloatDecoration extends RecyclerView.ItemDecoration {
         v.measure(measuredWidth, measuredHeight);
         v.layout(0, 0, v.getMeasuredWidth(), v.getMeasuredHeight());
     }
-
 }
