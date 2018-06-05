@@ -4,7 +4,9 @@ import android.graphics.Canvas;
 import android.graphics.Rect;
 import android.support.v4.util.ArrayMap;
 import android.support.v4.view.GestureDetectorCompat;
+import android.support.v7.widget.LinearLayoutManager;
 import android.support.v7.widget.RecyclerView;
+import android.util.Log;
 import android.view.GestureDetector;
 import android.view.MotionEvent;
 import android.view.View;
@@ -30,6 +32,15 @@ public class FloatDecoration extends RecyclerView.ItemDecoration {
     public void onDrawOver(Canvas c, RecyclerView parent, RecyclerView.State state) {
         super.onDrawOver(c, parent, state);
         RecyclerView.LayoutManager layoutManager = parent.getLayoutManager();
+        if (!(layoutManager instanceof LinearLayoutManager)) {
+            Log.e("提示:", "只支持线性布局");
+            return;
+        }
+        LinearLayoutManager l = (LinearLayoutManager) layoutManager;
+        if (l.getOrientation() != LinearLayoutManager.VERTICAL) {
+            Log.e("提示:", "只支垂直方向");
+            return;
+        }
         View firstView = layoutManager.getChildAt(0);
         View secondView = layoutManager.getChildAt(1);
         if (firstView == null || secondView == null) return;
@@ -38,28 +49,39 @@ public class FloatDecoration extends RecyclerView.ItemDecoration {
         int SecondViewPosition = parent.getChildAdapterPosition(secondView);
         int firstItemType = adapter.getItemViewType(firstViewPosition);
         int secondItemType = adapter.getItemViewType(SecondViewPosition);
-        //第一个条目是悬浮类型
+        if (!hasInit) {
+            touch(parent);
+            if (firstViewPosition != 0) {
+                Log.e("提示:", "RecyclerView 被重建了,请检查Activity是否设置configChanges");
+            }
+        }
+        //第1个条目是悬浮类型
         if (isFloatHolder(firstItemType)) {
-            if (firstViewPosition != mFloatPosition) {
+            if (firstViewPosition != mFloatPosition || mFloatView.getHeight() == 1) {
                 mFloatPosition = firstViewPosition;
                 mFloatView = getFloatView(parent, firstView);
-                touch(parent);
             }
-            drawFloatView(mFloatView, c, 0, 0);
+            drawFloatView(parent, mFloatView, c, 0, 0);
             return;
         }
-        //第二个条目是悬浮类型
+        //第2个条目是悬浮类型
         if (isFloatHolder(secondItemType)) {
             if (mFloatPosition > firstViewPosition) {
                 mFloatPosition = findPreFloatPosition(parent);
                 mFloatView = getFloatView(parent, null);
             }
+            if (mFloatView == null) return;
             int top = secondView.getTop() - mFloatView.getHeight();
             if (top > 0) top = 0;
-            drawFloatView(mFloatView, c, 0, top);
-        } else if (mFloatView != null) {
-            drawFloatView(mFloatView, c, 0, 0);
+            drawFloatView(parent, mFloatView, c, 0, top);
+            return;
         }
+        //前2个条目都不是悬浮条目
+        if (mFloatView == null) {
+            mFloatPosition = findPreFloatPosition(parent);
+            mFloatView = getFloatView(parent, null);
+        }
+        drawFloatView(parent, mFloatView, c, 0, 0);
     }
 
     /**
@@ -75,7 +97,7 @@ public class FloatDecoration extends RecyclerView.ItemDecoration {
             @Override
             public boolean onInterceptTouchEvent(RecyclerView rv, MotionEvent e) {
                 mGestureDetectorCompat.onTouchEvent(e);
-                final int floatHeight = mHeightCache.get(mFloatPosition);
+                final int floatHeight = getFloatHeight();
                 return e.getY() < floatHeight;
             }
 
@@ -95,7 +117,7 @@ public class FloatDecoration extends RecyclerView.ItemDecoration {
 
         @Override
         public boolean onSingleTapUp(MotionEvent e) {
-            final int floatHeight = mHeightCache.get(mFloatPosition);
+            final int floatHeight = getFloatHeight();
             boolean b = e.getY() < floatHeight;
             if (b) {
                 childClick(getHolder(mRecyclerView).itemView, e.getX(), e.getY());
@@ -125,8 +147,11 @@ public class FloatDecoration extends RecyclerView.ItemDecoration {
     /**
      * 绘制悬浮条目
      */
-    private void drawFloatView(View v, Canvas c, int left, int top) {
-        if (v == null) return;
+    private void drawFloatView(RecyclerView parent, View v, Canvas c, int left, int top) {
+        if (v == null || v.getHeight() <= 1) return;
+        if (v.getWidth() < parent.getWidth()) {
+            layoutView(v, parent.getWidth(), getFloatHeight());
+        }
         c.save();
         c.translate(left, top);
         v.draw(c);
@@ -170,6 +195,13 @@ public class FloatDecoration extends RecyclerView.ItemDecoration {
         return getHolder(parent).itemView;
     }
 
+    private int getFloatHeight() {
+        Integer integer = mHeightCache.get(mFloatPosition);
+        if (integer == null) {
+            return 1;
+        }
+        return integer;
+    }
 
     /**
      * 获取之前要悬浮的holder
@@ -181,10 +213,10 @@ public class FloatDecoration extends RecyclerView.ItemDecoration {
         if (holder == null) {
             holder = adapter.createViewHolder(recyclerView, adapter.getItemViewType(mFloatPosition));
             mHolderCache.put(viewType, holder);
-            int height = mHeightCache.get(mFloatPosition);
-            int width = recyclerView.getWidth();
-            layoutView(holder.itemView, width, height);
         }
+        int height = getFloatHeight();
+        int width = recyclerView.getWidth();
+        layoutView(holder.itemView, width, height);
         adapter.bindViewHolder(holder, mFloatPosition);
         return holder;
     }
