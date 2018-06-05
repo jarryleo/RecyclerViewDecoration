@@ -161,7 +161,7 @@ public class FloatDecoration extends RecyclerView.ItemDecoration {
     }
 
     /**
-     * 获取要悬浮的item的bitmap
+     * 获取要悬浮的itemView
      */
     private View getFloatView(RecyclerView parent, View view) {
         if (view != null) {
