@@ -192,6 +192,7 @@ public class FloatDecoration extends RecyclerView.ItemDecoration {
         if (view != null) {
             mHeightCache.put(mFloatPosition, view.getHeight());
         }
+        if (mFloatPosition < 0) return null;
         return getHolder(parent).itemView;
     }
 
