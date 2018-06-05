@@ -1,7 +1,12 @@
 # RecyclerViewDecoration
 recyclerView条目悬浮吸顶控件
 
-## Useage 
+> 优势     
+> 1：原生绘制悬浮头，顺滑流畅   
+> 2:不影响悬浮头以及内部点击事件   
+> 3:全程无入侵，200行代码的单个java文件   
+
+## Usage 
 
 复制 [FloatDecoration.java](https://github.com/jarryleo/RecyclerViewDecoration/blob/master/app/src/main/java/cn/leo/recyclerviewdecoration/FloatDecoration.java)     
 
