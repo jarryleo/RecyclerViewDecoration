@@ -140,7 +140,7 @@ public class FloatDecoration extends RecyclerView.ItemDecoration {
                 }
                 Rect drawRect = new Rect();
                 parent.getDrawingRect(drawRect);
-                drawRect.top = mRecyclerViewPaddingTop;
+                drawRect.top = mClipBounds.bottom;
                 drawRect.left = mRecyclerViewPaddingLeft;
                 drawRect.right -= mRecyclerViewPaddingRight;
                 drawRect.bottom -= mRecyclerViewPaddingBottom;
