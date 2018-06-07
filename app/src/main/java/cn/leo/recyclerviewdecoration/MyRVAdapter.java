@@ -57,7 +57,7 @@ public class MyRVAdapter extends RecyclerView.Adapter<BaseRVHolder> {
 
     @Override
     public int getItemViewType(int position) {
-        if (position % 10 == 0) {
+        if (position % 9 == 0) {
             return 0;
         }
         return 1;
