@@ -9,7 +9,7 @@
 
     <TextView
         android:id="@+id/tvTitle"
-        android:layout_width="40dp"
+        android:layout_width="match_parent"
         android:layout_height="wrap_content"
         android:textSize="16dp"
         tool:text="123456"/>

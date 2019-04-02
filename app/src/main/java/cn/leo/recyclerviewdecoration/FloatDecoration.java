@@ -47,6 +47,7 @@ public class FloatDecoration extends RecyclerView.ItemDecoration {
         if (firstView == null) firstView = layoutManager.getChildAt(0);
         View secondView = parent.findChildViewUnder(mClipBounds.left, mFloatBottom);
         if (firstView == null) return;
+        if (secondView == null) return;
         RecyclerView.Adapter adapter = parent.getAdapter();
         int firstViewPosition = parent.getChildAdapterPosition(firstView);
         int secondViewPosition = parent.getChildAdapterPosition(secondView);
