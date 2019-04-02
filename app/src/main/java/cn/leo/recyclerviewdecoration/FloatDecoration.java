@@ -7,6 +7,7 @@ import android.support.v4.util.ArrayMap;
 import android.support.v4.view.GestureDetectorCompat;
 import android.support.v7.widget.GridLayoutManager;
 import android.support.v7.widget.RecyclerView;
+import android.util.Log;
 import android.view.GestureDetector;
 import android.view.MotionEvent;
 import android.view.View;
@@ -68,7 +69,7 @@ public class FloatDecoration extends RecyclerView.ItemDecoration {
             touch(parent);
         }
         if (isFloatHolder(firstItemType)) {
-            if (firstViewPosition != mFloatPosition) {
+            if (firstViewPosition != mFloatPosition || firstViewPosition == 0) {
                 mFloatPosition = firstViewPosition;
                 mFloatView = getFloatView(parent, firstView);
             }
@@ -111,6 +112,7 @@ public class FloatDecoration extends RecyclerView.ItemDecoration {
                 top + mRecyclerViewPaddingTop + mHeaderTopMargin);
         v.draw(c);
         c.restore();
+        Log.e("---------------", "drawFloatView: " + v);
     }
 
     /**

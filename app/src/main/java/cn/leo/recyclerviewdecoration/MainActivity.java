@@ -7,6 +7,7 @@ import android.support.v4.widget.SwipeRefreshLayout;
 import android.support.v7.app.AppCompatActivity;
 import android.support.v7.widget.LinearLayoutManager;
 import android.support.v7.widget.RecyclerView;
+import android.view.View;
 
 import java.util.ArrayList;
 import java.util.List;
@@ -36,8 +37,15 @@ public class MainActivity extends AppCompatActivity {
                         LinearLayoutManager.VERTICAL, false));
         mAdapter = new TestRvAdapter();
         mRecyclerView.setAdapter(mAdapter);
-        mRecyclerView.addItemDecoration(new FloatDecoration(0));
+        mRecyclerView.addItemDecoration(new FloatDecoration(R.layout.item_title));
         initData();
+
+        findViewById(R.id.btnRefresh).setOnClickListener(new View.OnClickListener() {
+            @Override
+            public void onClick(View v) {
+                initData();
+            }
+        });
     }
 
     @Override

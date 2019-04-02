@@ -6,6 +6,16 @@ package cn.leo.recyclerviewdecoration;
  */
 public class TestRvAdapter extends AsyncRVAdapter<String> {
     @Override
+    protected boolean areItemsTheSame(String oldItem, String newItem) {
+        return false;
+    }
+
+    @Override
+    protected boolean areContentsTheSame(String oldItem, String newItem) {
+        return false;
+    }
+
+    @Override
     protected int getItemLayout(int position) {
         return position % 9 == 0 ? R.layout.item_title : R.layout.item_content;
     }
